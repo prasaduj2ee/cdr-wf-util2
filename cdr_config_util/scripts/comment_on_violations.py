@@ -48,10 +48,12 @@ def get_pr_diff_lines():
                 except:
                     continue
             elif line.startswith("+") and not line.startswith("+++"):
-                new_line += 1
-                positions[new_line] = position
+                if new_line is not None:
+                    new_line += 1
+                    positions[new_line] = position
             elif not line.startswith("-"):
-                new_line += 1
+                if new_line is not None:
+                    new_line += 1
 
         result[path] = positions
     return result
