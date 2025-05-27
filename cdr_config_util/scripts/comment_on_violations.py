@@ -27,7 +27,14 @@ GENERAL_COMMENTS = defaultdict(list)
 def get_pr_diff_lines():
     url = f"https://api.github.com/repos/{GITHUB_REPOSITORY}/pulls/{PR_NUMBER}/files"
     response = requests.get(url, headers=HEADERS)
-    print(f"DIFF response to fetch PR diff: {response}")
+    print(f"DIFF response status code: {response.status_code}")
+    try:
+        print("DIFF response JSON content:")
+        print(json.dumps(response.json(), indent=2))
+    except Exception as e:
+        print("Failed to parse JSON response:")
+        print(response.text)
+        
     if response.status_code != 200:
         print(f"❌ Failed to fetch PR diff: {response.status_code}")
         return {}
