@@ -97,6 +97,7 @@ def post_inline_comment(file_path, line, message):
         # Inline comment
         payload = {
             "body": message,
+            "commit_id": COMMIT_SHA,
             "path": file_path,
             "line": line_num,
             "position": 1  # Required but ignored for commit comments
