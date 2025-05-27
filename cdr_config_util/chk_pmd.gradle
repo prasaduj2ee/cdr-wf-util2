@@ -1,0 +1,27 @@
+
+pmd {
+    toolVersion = '7.13.0'
+    ruleSetFiles = files('./config/pmd/pmd-ruleset.xml')
+    ruleSets = []
+    ignoreFailures = false
+}
+
+checkstyle {
+    toolVersion = '10.12.1'
+    configFile = file('./config/checkstyle/checkstyle.xml')
+    ignoreFailures = false
+}
+
+tasks.withType(Pmd) {
+    reports {
+        html.required.set(true)
+        xml.required.set(true)
+    }
+}
+
+tasks.withType(Checkstyle) {
+    reports {
+        html.required.set(true)
+        xml.required.set(true)
+    }
+}
