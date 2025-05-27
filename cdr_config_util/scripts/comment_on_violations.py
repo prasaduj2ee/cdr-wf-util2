@@ -3,6 +3,7 @@ import xml.etree.ElementTree as ET
 import requests
 import json
 from collections import defaultdict
+import re
 
 # --- Environment Variables ---
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
@@ -27,14 +28,6 @@ GENERAL_COMMENTS = defaultdict(list)
 def get_pr_diff_lines():
     url = f"https://api.github.com/repos/{GITHUB_REPOSITORY}/pulls/{PR_NUMBER}/files"
     response = requests.get(url, headers=HEADERS)
-    print(f"DIFF response status code: {response.status_code}")
-    try:
-        print("DIFF response JSON content:")
-        print(json.dumps(response.json(), indent=2))
-    except Exception as e:
-        print("Failed to parse JSON response:")
-        print(response.text)
-        
     if response.status_code != 200:
         print(f"❌ Failed to fetch PR diff: {response.status_code}")
         return {}
@@ -50,11 +43,13 @@ def get_pr_diff_lines():
         for line in patch.splitlines():
             position += 1
             if line.startswith("@@"):
-                try:
-                    new_start = int(line.split("@@")[1].split("+")[1].split(" ")[0])
+                # Example hunk line: @@ -55,4 +55,52 @@
+                m = re.search(r"\+(\d+)(?:,(\d+))?", line)
+                if m:
+                    new_start = int(m.group(1))
                     new_line = new_start - 1
-                except:
-                    continue
+                else:
+                    new_line = None
             elif line.startswith("+") and not line.startswith("+++"):
                 if new_line is not None:
                     new_line += 1
