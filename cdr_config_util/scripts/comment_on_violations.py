@@ -7,7 +7,9 @@ from collections import defaultdict
 # --- Config from environment ---
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 COMMIT_SHA = os.getenv("COMMIT_SHA")
-REPO = os.getenv("REPO")
+GITHUB_REPOSITORY = os.getenv("GITHUB_REPOSITORY")
+PR_NUMBER = os.getenv("PR_NUMBER")
+GITHUB_REF = os.getenv("GITHUB_REF")
 
 print("Repo:", REPO)
 print("COMMIT_SHA:", COMMIT_SHA)
@@ -17,11 +19,11 @@ HEADERS = {
     "Accept": "application/vnd.github.v3+json"
 }
 
-BASE_API = f"https://api.github.com/repos/{REPO}/commits/{COMMIT_SHA}/comments"
+BASE_API = f"https://api.github.com/repos/{GITHUB_REPOSITORY}/commits/{COMMIT_SHA}/comments"
 
 # --- Fetch commit diff to determine changed lines ---
 def get_commit_diff_lines():
-    diff_url = f"https://api.github.com/repos/{REPO}/commits/{COMMIT_SHA}"
+    diff_url = f"https://api.github.com/repos/{GITHUB_REPOSITORY}/commits/{COMMIT_SHA}"
     response = requests.get(diff_url, headers=HEADERS)
     if response.status_code != 200:
         print(f"Failed to fetch commit diff: {response.status_code}")
