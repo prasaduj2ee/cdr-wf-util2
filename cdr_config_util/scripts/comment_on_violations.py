@@ -102,7 +102,7 @@ def post_comment(file_path, line, message):
             "position": 1  # Required but ignored for commit comments
         }
         print("Posting inline comment:\n" + json.dumps(payload, indent=2))
-        response = requests.post(BASE_API, headers=HEADERS, json=payload)
+        response = requests.post(PR_REVIEW_COMMENTS_API = f"https://api.github.com/repos/{GITHUB_REPOSITORY}/pulls/{PR_NUMBER}/comments", headers=HEADERS, json=payload)
         print(f"Inline response {response.status_code}")
         if response.status_code != 201:
             print(response.text)
