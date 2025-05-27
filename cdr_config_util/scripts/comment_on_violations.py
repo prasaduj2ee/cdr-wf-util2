@@ -9,6 +9,9 @@ GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 COMMIT_SHA = os.getenv("COMMIT_SHA")
 REPO = os.getenv("REPO")
 
+print("Repo:", REPO)
+print("COMMIT_SHA:", COMMIT_SHA)
+
 HEADERS = {
     "Authorization": f"Bearer {GITHUB_TOKEN}",
     "Accept": "application/vnd.github.v3+json"
