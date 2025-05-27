@@ -1,7 +1,7 @@
 
 pmd {
     toolVersion = '7.13.0'
-    ruleSetFiles = files('cdr-wf-util/cdr_config_util/config/pmd/pmd-ruleset.xml')
+    ruleSetFiles = files('cdr-wf-util/cdr_config_util/config/pmd/ruleset.xml')
     ruleSets = []
     ignoreFailures = false
 }
@@ -13,9 +13,6 @@ checkstyle {
 }
 
 tasks.withType(Pmd) {
-    source = fileTree("src/main/java").matching {
-        include("**/*.java")
-    }
     reports {
         html.required.set(true)
         xml.required.set(true)
