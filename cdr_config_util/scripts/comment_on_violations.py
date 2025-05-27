@@ -11,9 +11,6 @@ GITHUB_REPOSITORY = os.getenv("GITHUB_REPOSITORY")
 PR_NUMBER = os.getenv("PR_NUMBER")
 GITHUB_REF = os.getenv("GITHUB_REF")
 
-print("Repo:", REPO)
-print("COMMIT_SHA:", COMMIT_SHA)
-
 HEADERS = {
     "Authorization": f"Bearer {GITHUB_TOKEN}",
     "Accept": "application/vnd.github.v3+json"
