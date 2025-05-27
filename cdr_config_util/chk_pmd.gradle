@@ -13,6 +13,9 @@ checkstyle {
 }
 
 tasks.withType(Pmd) {
+    source = fileTree("src/main/java").matching {
+        include("**/*.java")
+    }
     reports {
         html.required.set(true)
         xml.required.set(true)
