@@ -27,6 +27,7 @@ GENERAL_COMMENTS = defaultdict(list)
 def get_pr_diff_lines():
     url = f"https://api.github.com/repos/{GITHUB_REPOSITORY}/pulls/{PR_NUMBER}/files"
     response = requests.get(url, headers=HEADERS)
+    print(f"DIFF response to fetch PR diff: {response}")
     if response.status_code != 200:
         print(f"❌ Failed to fetch PR diff: {response.status_code}")
         return {}
