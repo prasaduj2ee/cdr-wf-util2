@@ -59,6 +59,7 @@ def get_pr_diff_lines():
     return result
 
 DIFF_LINES = get_pr_diff_lines()
+print("DIFF_LINES-->", DIFF_LINES)
 
 # --- Severity mapping for PMD ---
 def get_pmd_severity(priority):
@@ -86,28 +87,24 @@ def get_checkstyle_url(source):
 # --- Post inline or fallback to general comment ---
 def post_comment(file_path, line, message):
     file_path = file_path.strip()
-    try:
-        line_num = int(line)
-    except:
-        line_num = None
+    line_num = int(line) if line else None
+    path_in_diff = DIFF_LINES.get(file_path, set())
 
-    pos_map = DIFF_LINES.get(file_path, {})
-    position = pos_map.get(line_num)
-
-    if position:
+    if line_num and line_num in path_in_diff:
+        # Inline comment
         payload = {
             "body": message,
             "path": file_path,
             "line": line_num,
-            "position": position,
-            "commit_id": COMMIT_SHA
+            "position": 1  # Required but ignored for commit comments
         }
-        print(f"💬 Inline PR comment:\n{json.dumps(payload, indent=2)}")
-        r = requests.post(PR_REVIEW_COMMENTS_API, headers=HEADERS, json=payload)
-        print(f"📌 Inline response: {r.status_code}")
-        if r.status_code != 201:
-            print(r.text)
+        print("Posting inline comment:\n" + json.dumps(payload, indent=2))
+        response = requests.post(BASE_API, headers=HEADERS, json=payload)
+        print(f"Inline response {response.status_code}")
+        if response.status_code != 201:
+            print(response.text)
     else:
+        # Queue general comment by file
         GENERAL_COMMENTS[file_path].append(f"Line {line}: {message}")
 
 # --- Post general comments to PR conversation ---
