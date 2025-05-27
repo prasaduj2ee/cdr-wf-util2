@@ -88,7 +88,7 @@ def get_checkstyle_url(source):
     return "https://checkstyle.sourceforge.io/checks.html"
 
 # --- Post inline or fallback to general comment ---
-def post_comment(file_path, line, message):
+def post_inline_comment(file_path, line, message):
     file_path = file_path.strip()
     line_num = int(line) if line else None
     path_in_diff = DIFF_LINES.get(file_path, set())
@@ -102,7 +102,7 @@ def post_comment(file_path, line, message):
             "position": 1  # Required but ignored for commit comments
         }
         print("Posting inline comment:\n" + json.dumps(payload, indent=2))
-        response = requests.post(PR_REVIEW_COMMENTS_API = f"https://api.github.com/repos/{GITHUB_REPOSITORY}/pulls/{PR_NUMBER}/comments", headers=HEADERS, json=payload)
+        response = requests.post(PR_REVIEW_COMMENTS_API, headers=HEADERS, json=payload)
         print(f"Inline response {response.status_code}")
         if response.status_code != 201:
             print(response.text)
@@ -142,7 +142,7 @@ def parse_checkstyle(path):
                 idx = parts.index("checks")
                 if idx + 1 < len(parts): category = parts[idx + 1].title()
             msg = f"[Checkstyle -> {category} -> {severity}] {err.get('message')} ([Reference]({url}))"
-            post_comment(file_path, line, msg)
+            post_inline_comment(file_path, line, msg)
 
 # --- PMD XML Parser ---
 def parse_pmd(path):
@@ -165,7 +165,7 @@ def parse_pmd(path):
             url = v.get("externalInfoUrl", "")
             msg_text = v.text.strip()
             msg = f"[PMD -> {ruleset} -> {severity}] {msg_text} ([Reference]({url}))" if url else f"[PMD:{severity}][{ruleset}] {msg_text}"
-            post_comment(file_path, line, msg)
+            post_inline_comment(file_path, line, msg)
 
 # --- Run everything ---
 parse_checkstyle("build/reports/checkstyle/main.xml")
