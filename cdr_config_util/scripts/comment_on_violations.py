@@ -95,13 +95,17 @@ def get_checkstyle_url(source):
 # --- Post inline or fallback to general comment ---
 def post_inline_comment(file_path, line, message, severity="Unknown"):
     file_path = file_path.strip()
-    line_num = int(line) if line else None
-    path_in_diff = DIFF_LINES.get(file_path, set())
+    line_num = int(line) if line and line.isdigit() else None
+    path_in_diff = DIFF_LINES.get(file_path, {})
+
+    # ✅ Skip if line not in diff
+    if not (line_num and line_num in path_in_diff):
+        return
 
     # Store in grouped general comments
     GENERAL_COMMENTS[file_path][severity].append(f"Line {line}: {message}")
 
-    if file_path in POSTED_INLINE or not (line_num and line_num in path_in_diff):
+    if file_path in POSTED_INLINE:
         return
 
     if sum(len(v) for v in GENERAL_COMMENTS[file_path].values()) > 1:
@@ -128,6 +132,9 @@ def post_inline_comment(file_path, line, message, severity="Unknown"):
 # --- General PR comment posting ---
 def post_general_comments():
     for file_path, severity_map in GENERAL_COMMENTS.items():
+        if not any(severity_map.values()):
+            continue  # Skip files with no collected messages
+
         comment_body = f"### 🧹 Static Analysis Results for `{file_path}`\n"
         for severity in ["High", "Medium", "Low", "Info", "Unknown"]:
             messages = severity_map.get(severity)
