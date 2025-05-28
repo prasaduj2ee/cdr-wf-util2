@@ -101,16 +101,15 @@ def post_inline_comment(file_path, line, message, severity="Unknown"):
     if not (line_num and line_num in path_in_diff):
         return
 
+    # ✅ Store message first before checking future count
+    GENERAL_COMMENTS[file_path][severity].append(f"Line {line}: {message}")
+
     # Only add inline comment for first issue in file
     if file_path not in POSTED_INLINE:
-        # Count how many issues would be posted in this file
-        future_count = 0
-        for sev_map in GENERAL_COMMENTS[file_path].values():
-            future_count += len(sev_map)
-        # +1 to simulate this one being added
-        future_count += 1
+        # Count total issues recorded for the file
+        total_issues = sum(len(v) for v in GENERAL_COMMENTS[file_path].values())
 
-        if future_count > 1:
+        if total_issues > 1:
             message += (
                 "\n\n**Note**: For more comments, see the "
                 f"*Static Analysis Results* section below for `{file_path}`."
@@ -131,9 +130,6 @@ def post_inline_comment(file_path, line, message, severity="Unknown"):
             POSTED_INLINE.add(file_path)
         else:
             print(response.text)
-
-    # Always collect message for general summary
-    GENERAL_COMMENTS[file_path][severity].append(f"Line {line}: {message}")
 
 # --- General PR comment posting ---
 def post_general_comments():
