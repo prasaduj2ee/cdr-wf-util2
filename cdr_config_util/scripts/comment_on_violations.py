@@ -98,19 +98,19 @@ def post_inline_comment(file_path, line, message, severity="Unknown"):
     line_num = int(line) if line and line.isdigit() else None
     path_in_diff = DIFF_LINES.get(file_path, {})
 
-    # ✅ Skip if line not in diff
     if not (line_num and line_num in path_in_diff):
         return
 
-    # Store the message first
+    # Count previous messages (before adding this one)
+    existing_count = sum(len(v) for v in GENERAL_COMMENTS[file_path].values())
+
+    # Add current message
     GENERAL_COMMENTS[file_path][severity].append(f"Line {line}: {message}")
 
     if file_path in POSTED_INLINE:
         return
 
-    # Count all other diff-line messages for this file
-    total_comments = sum(len(v) for v in GENERAL_COMMENTS[file_path].values())
-    if total_comments > 1:
+    if existing_count > 0:  # there are already other messages for this file
         message += (
             "\n\n**Note**: For more comments, see the "
             f"*Static Analysis Results* section below for `{file_path}`."
@@ -123,6 +123,7 @@ def post_inline_comment(file_path, line, message, severity="Unknown"):
         "line": line_num,
         "position": 1
     }
+
     print("Posting inline comment:\n" + json.dumps(payload, indent=2))
     response = requests.post(PR_REVIEW_COMMENTS_API, headers=HEADERS, json=payload)
     print(f"Inline response {response.status_code}")
