@@ -93,11 +93,9 @@ def post_inline_comment(file_path, line, message):
     line_num = int(line) if line else None
     path_in_diff = DIFF_LINES.get(file_path, set())
 
-    if i == 0 and line_num and line_num in path_in_diff:
-        # First message and eligible for inline
-        note = "\n\n**Note**: For More comments refere general comments section." if len(messages) > 1 else ""
+    if line_num and line_num in path_in_diff:
         payload = {
-            "body": message + note,
+            "body": message,
             "commit_id": COMMIT_SHA,
             "path": file_path,
             "line": line_num,
