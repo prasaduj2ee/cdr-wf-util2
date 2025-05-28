@@ -113,7 +113,7 @@ def post_inline_comment(file_path, line, message, severity="Unknown", total_issu
         if total_issues > 1:
             message += (
                 "\n\n**Note**: For more comments, see the "
-                f"*Static Analysis Results* section below for `{file_path}`."
+                f"*Static Analysis Results* section below for `{file_path}`"
             )
 
         payload = {
