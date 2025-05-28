@@ -104,7 +104,10 @@ def post_inline_comment(file_path, line, message):
     # Check if this is the only comment or one of many
     messages = GENERAL_COMMENTS[file_path]
     if len(messages) > 1:
-        message += "\n\n**Note**: For more comments, refer to the general comments section."
+        message += (
+            "\n\n**Note**: For more comments, see the "
+            f"*Static Analysis Results* section below for `{file_path}`."
+        )
 
     # Post inline comment
     payload = {
