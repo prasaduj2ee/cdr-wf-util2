@@ -101,36 +101,39 @@ def post_inline_comment(file_path, line, message, severity="Unknown"):
     if not (line_num and line_num in path_in_diff):
         return
 
-    # Count previous messages (before adding this one)
-    existing_count = sum(len(v) for v in GENERAL_COMMENTS[file_path].values())
+    # Only add inline comment for first issue in file
+    if file_path not in POSTED_INLINE:
+        # Count how many issues would be posted in this file
+        future_count = 0
+        for sev_map in GENERAL_COMMENTS[file_path].values():
+            future_count += len(sev_map)
+        # +1 to simulate this one being added
+        future_count += 1
 
-    # Add current message
+        if future_count > 1:
+            message += (
+                "\n\n**Note**: For more comments, see the "
+                f"*Static Analysis Results* section below for `{file_path}`."
+            )
+
+        payload = {
+            "body": message,
+            "commit_id": COMMIT_SHA,
+            "path": file_path,
+            "line": line_num,
+            "position": 1
+        }
+
+        print("Posting inline comment:\n" + json.dumps(payload, indent=2))
+        response = requests.post(PR_REVIEW_COMMENTS_API, headers=HEADERS, json=payload)
+        print(f"Inline response {response.status_code}")
+        if response.status_code == 201:
+            POSTED_INLINE.add(file_path)
+        else:
+            print(response.text)
+
+    # Always collect message for general summary
     GENERAL_COMMENTS[file_path][severity].append(f"Line {line}: {message}")
-
-    if file_path in POSTED_INLINE:
-        return
-
-    if existing_count > 0:  # there are already other messages for this file
-        message += (
-            "\n\n**Note**: For more comments, see the "
-            f"*Static Analysis Results* section below for `{file_path}`."
-        )
-
-    payload = {
-        "body": message,
-        "commit_id": COMMIT_SHA,
-        "path": file_path,
-        "line": line_num,
-        "position": 1
-    }
-
-    print("Posting inline comment:\n" + json.dumps(payload, indent=2))
-    response = requests.post(PR_REVIEW_COMMENTS_API, headers=HEADERS, json=payload)
-    print(f"Inline response {response.status_code}")
-    if response.status_code == 201:
-        POSTED_INLINE.add(file_path)
-    else:
-        print(response.text)
 
 # --- General PR comment posting ---
 def post_general_comments():
