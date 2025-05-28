@@ -93,7 +93,7 @@ def get_checkstyle_url(source):
     return "https://checkstyle.sourceforge.io/checks.html"
 
 # --- Post inline or fallback to general comment ---
-def post_inline_comment(file_path, line, message, severity="Unknown"):
+def post_inline_comment(file_path, line, message, severity="Unknown", total_issues=1):
     file_path = file_path.strip()
     line_num = int(line) if line and line.isdigit() else None
     path_in_diff = DIFF_LINES.get(file_path, {})
@@ -105,7 +105,7 @@ def post_inline_comment(file_path, line, message, severity="Unknown"):
     # Add current message first
     GENERAL_COMMENTS[file_path][severity].append(f"Line {line}: {message}")
 
-    total_issues = sum(len(v) for v in GENERAL_COMMENTS[file_path].values())
+    #total_issues = sum(len(v) for v in GENERAL_COMMENTS[file_path].values())
     print(f"Total issues for {file_path}: {total_issues}")
 
     if file_path not in POSTED_INLINE:
@@ -164,7 +164,9 @@ def parse_checkstyle(path):
     for f in root.findall("file"):
         file_path = f.get("name")
         file_path = file_path[file_path.find("src/"):] if "src/" in file_path else file_path
-        for err in f.findall("error"):
+        errors = f.findall("error")
+        total_errors = len(errors)
+        for err in errors:
             line = err.get("line")
             severity_raw = err.get("severity", "info")
             severity = get_checkstyle_severity(severity_raw)
@@ -177,7 +179,7 @@ def parse_checkstyle(path):
                 if idx + 1 < len(parts):
                     category = parts[idx + 1].title()
             msg = f"[Checkstyle -> {category} -> {severity}] {err.get('message')} ([Reference]({url}))"
-            post_inline_comment(file_path, line, msg, severity)
+            post_inline_comment(file_path, line, msg, severity, total_errors)
 
 # --- Parse PMD report ---
 def parse_pmd(path):
@@ -192,6 +194,7 @@ def parse_pmd(path):
         file_path = f.get("name")
         file_path = file_path[file_path.find("src/"):] if "src/" in file_path else file_path
         violations = f.findall("ns:violation", ns) if ns else f.findall("violation")
+        total_violations = len(violations)
         for v in violations:
             line = v.get("beginline")
             priority = v.get("priority", "3")
@@ -200,7 +203,7 @@ def parse_pmd(path):
             url = v.get("externalInfoUrl", "")
             msg_text = v.text.strip()
             msg = f"[PMD -> {ruleset} -> {severity}] {msg_text} ([Reference]({url}))" if url else f"[PMD:{severity}][{ruleset}] {msg_text}"
-            post_inline_comment(file_path, line, msg, severity)
+            post_inline_comment(file_path, line, msg, severity, total_violations)
 
 # --- Run everything ---
 parse_checkstyle("build/reports/checkstyle/main.xml")
