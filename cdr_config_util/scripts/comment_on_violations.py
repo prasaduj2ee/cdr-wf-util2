@@ -107,7 +107,7 @@ def post_inline_comment(file_path, line, message, severity="Unknown", total_issu
     GENERAL_COMMENTS[file_path][severity].append(f"Line {line}: {message}")
 
     #total_issues = sum(len(v) for v in GENERAL_COMMENTS[file_path].values())
-    print(f"Total issues for {file_path}: {total_issues}")
+    #print(f"Total issues for {file_path}: {total_issues}")
 
     if file_path not in POSTED_INLINE:
         if total_issues > 1:
@@ -149,9 +149,9 @@ def post_general_comments():
                     comment_body += f"- {m}\n"
                 comment_body += "\n</details>\n"
         payload = { "body": comment_body }
-        print(f"📋 General PR comment:\n{json.dumps(payload, indent=2)}")
+        #print(f"📋 General PR comment:\n{json.dumps(payload, indent=2)}")
         r = requests.post(PR_GENERAL_COMMENTS_API, headers=HEADERS, json=payload)
-        print(f"🗣️ General comment response: {r.status_code}")
+        #print(f"🗣️ General comment response: {r.status_code}")
         if r.status_code != 201:
             print(r.text)
 
