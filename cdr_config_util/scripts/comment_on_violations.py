@@ -102,13 +102,15 @@ def post_inline_comment(file_path, line, message, severity="Unknown"):
     if not (line_num and line_num in path_in_diff):
         return
 
-    # Store in grouped general comments
+    # Store the message first
     GENERAL_COMMENTS[file_path][severity].append(f"Line {line}: {message}")
 
     if file_path in POSTED_INLINE:
         return
 
-    if sum(len(v) for v in GENERAL_COMMENTS[file_path].values()) > 1:
+    # Count all other diff-line messages for this file
+    total_comments = sum(len(v) for v in GENERAL_COMMENTS[file_path].values())
+    if total_comments > 1:
         message += (
             "\n\n**Note**: For more comments, see the "
             f"*Static Analysis Results* section below for `{file_path}`."
