@@ -22,6 +22,15 @@
 
     <module name="TreeWalker">
 
+        <!-- Indentation must go here -->
+        <module name="Indentation">
+            <property name="basicOffset" value="4"/>
+            <property name="braceAdjustment" value="0"/>
+            <property name="caseIndent" value="4"/>
+            <property name="lineWrappingIndentation" value="8"/>
+            <property name="tabWidth" value="4"/>
+        </module>
+
         <!-- Javadoc checks -->
         <module name="JavadocMethod"/>
         <module name="JavadocType"/>
@@ -98,14 +107,4 @@
         <module name="UpperEll"/>
 
     </module>
-
-    <!-- Indentation - outside of TreeWalker -->
-    <module name="Indentation">
-        <property name="basicOffset" value="4"/>
-        <property name="braceAdjustment" value="0"/>
-        <property name="caseIndent" value="4"/>
-        <property name="lineWrappingIndentation" value="8"/>
-        <property name="tabWidth" value="4"/>
-    </module>
-
 </module>
