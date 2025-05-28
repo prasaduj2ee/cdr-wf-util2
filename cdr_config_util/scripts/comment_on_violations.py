@@ -22,7 +22,8 @@ PR_GENERAL_COMMENTS_API = f"https://api.github.com/repos/{GITHUB_REPOSITORY}/iss
 
 # --- Store comment data ---
 DIFF_LINES = {}
-GENERAL_COMMENTS = defaultdict(list)
+GENERAL_COMMENTS = defaultdict(lambda: defaultdict(list))  # file_path -> severity -> messages
+POSTED_INLINE = set()
 
 # --- Fetch PR diff and map line -> position
 def get_pr_diff_lines():
@@ -43,7 +44,6 @@ def get_pr_diff_lines():
         for line in patch.splitlines():
             position += 1
             if line.startswith("@@"):
-                # Example hunk line: @@ -55,4 +55,52 @@
                 m = re.search(r"\+(\d+)(?:,(\d+))?", line)
                 if m:
                     new_start = int(m.group(1))
@@ -64,17 +64,22 @@ def get_pr_diff_lines():
 DIFF_LINES = get_pr_diff_lines()
 print("DIFF_LINES-->", DIFF_LINES)
 
-# --- Severity mapping for PMD ---
+# --- Severity Mappers ---
 def get_pmd_severity(priority):
     try:
         p = int(priority)
     except:
         return "Unknown"
-    return {
-        1: "High", 2: "High", 3: "Medium", 4: "Low", 5: "Info"
-    }.get(p, "Unknown")
+    return {1: "High", 2: "High", 3: "Medium", 4: "Low", 5: "Info"}.get(p, "Unknown")
 
-# --- Checkstyle rule doc URL ---
+def get_checkstyle_severity(sev):
+    return {
+        "error": "High",
+        "warning": "Medium",
+        "info": "Info"
+    }.get(sev.lower(), "Unknown")
+
+# --- Checkstyle Rule URL ---
 def get_checkstyle_url(source):
     if not source:
         return ""
@@ -88,28 +93,23 @@ def get_checkstyle_url(source):
     return "https://checkstyle.sourceforge.io/checks.html"
 
 # --- Post inline or fallback to general comment ---
-POSTED_INLINE = set()  # Tracks which files have had inline comments
-def post_inline_comment(file_path, line, message):
+def post_inline_comment(file_path, line, message, severity="Unknown"):
     file_path = file_path.strip()
     line_num = int(line) if line else None
     path_in_diff = DIFF_LINES.get(file_path, set())
 
-    # Always collect the message for general comments
-    GENERAL_COMMENTS[file_path].append(f"Line {line}: {message}")
+    # Store in grouped general comments
+    GENERAL_COMMENTS[file_path][severity].append(f"Line {line}: {message}")
 
-    # Only allow one inline comment per file
     if file_path in POSTED_INLINE or not (line_num and line_num in path_in_diff):
         return
 
-    # Check if this is the only comment or one of many
-    messages = GENERAL_COMMENTS[file_path]
-    if len(messages) > 1:
+    if sum(len(v) for v in GENERAL_COMMENTS[file_path].values()) > 1:
         message += (
             "\n\n**Note**: For more comments, see the "
             f"*Static Analysis Results* section below for `{file_path}`."
         )
 
-    # Post inline comment
     payload = {
         "body": message,
         "commit_id": COMMIT_SHA,
@@ -120,15 +120,22 @@ def post_inline_comment(file_path, line, message):
     print("Posting inline comment:\n" + json.dumps(payload, indent=2))
     response = requests.post(PR_REVIEW_COMMENTS_API, headers=HEADERS, json=payload)
     print(f"Inline response {response.status_code}")
-    if response.status_code != 201:
-        print(response.text)
-    else:
+    if response.status_code == 201:
         POSTED_INLINE.add(file_path)
+    else:
+        print(response.text)
 
-# --- Post general comments to PR conversation ---
+# --- General PR comment posting ---
 def post_general_comments():
-    for file_path, messages in GENERAL_COMMENTS.items():
-        comment_body = f"### Static Analysis Results for `{file_path}`\n" + "\n".join(f"- {m}" for m in messages)
+    for file_path, severity_map in GENERAL_COMMENTS.items():
+        comment_body = f"### 🧹 Static Analysis Results for `{file_path}`\n"
+        for severity in ["High", "Medium", "Low", "Info", "Unknown"]:
+            messages = severity_map.get(severity)
+            if messages:
+                comment_body += f"\n<details><summary>🔸 **{severity} Severity** ({len(messages)} issue(s))</summary>\n\n"
+                for m in messages:
+                    comment_body += f"- {m}\n"
+                comment_body += "\n</details>\n"
         payload = { "body": comment_body }
         print(f"📋 General PR comment:\n{json.dumps(payload, indent=2)}")
         r = requests.post(PR_GENERAL_COMMENTS_API, headers=HEADERS, json=payload)
@@ -136,7 +143,7 @@ def post_general_comments():
         if r.status_code != 201:
             print(r.text)
 
-# --- Checkstyle XML Parser ---
+# --- Parse Checkstyle report ---
 def parse_checkstyle(path):
     if not os.path.exists(path):
         print(f"⚠️ Checkstyle report not found: {path}")
@@ -148,18 +155,20 @@ def parse_checkstyle(path):
         file_path = file_path[file_path.find("src/"):] if "src/" in file_path else file_path
         for err in f.findall("error"):
             line = err.get("line")
-            severity = err.get("severity", "info").title()
+            severity_raw = err.get("severity", "info")
+            severity = get_checkstyle_severity(severity_raw)
             source = err.get("source")
             url = get_checkstyle_url(source)
             category = "unknown"
             parts = source.split(".") if source else []
             if "checks" in parts:
                 idx = parts.index("checks")
-                if idx + 1 < len(parts): category = parts[idx + 1].title()
+                if idx + 1 < len(parts):
+                    category = parts[idx + 1].title()
             msg = f"[Checkstyle -> {category} -> {severity}] {err.get('message')} ([Reference]({url}))"
-            post_inline_comment(file_path, line, msg)
+            post_inline_comment(file_path, line, msg, severity)
 
-# --- PMD XML Parser ---
+# --- Parse PMD report ---
 def parse_pmd(path):
     if not os.path.exists(path):
         print(f"⚠️ PMD report not found: {path}")
@@ -180,7 +189,7 @@ def parse_pmd(path):
             url = v.get("externalInfoUrl", "")
             msg_text = v.text.strip()
             msg = f"[PMD -> {ruleset} -> {severity}] {msg_text} ([Reference]({url}))" if url else f"[PMD:{severity}][{ruleset}] {msg_text}"
-            post_inline_comment(file_path, line, msg)
+            post_inline_comment(file_path, line, msg, severity)
 
 # --- Run everything ---
 parse_checkstyle("build/reports/checkstyle/main.xml")
