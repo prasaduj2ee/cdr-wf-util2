@@ -100,7 +100,7 @@ def post_inline_comment(file_path, line, message, severity="Unknown", total_issu
     path_in_diff = DIFF_LINES.get(file_path, {})
 
     if not (line_num and line_num in path_in_diff):
-        print(f"Skipping comment for {file_path}:{line} - line not in diff")
+        #print(f"Skipping comment for {file_path}:{line} - line not in diff")
         return
 
     # Add current message first
@@ -124,15 +124,15 @@ def post_inline_comment(file_path, line, message, severity="Unknown", total_issu
             "position": 1
         }
 
-        print(f"Posting inline comment:\n{json.dumps(payload, indent=2)}")
+        #print(f"Posting inline comment:\n{json.dumps(payload, indent=2)}")
         response = requests.post(PR_REVIEW_COMMENTS_API, headers=HEADERS, json=payload)
-        print(f"Inline response {response.status_code}")
+        #print(f"Inline response {response.status_code}")
         if response.status_code == 201:
             POSTED_INLINE.add(file_path)
         else:
             print(response.text)
-    else:
-        print(f"Inline comment already posted for {file_path}, skipping inline post.")
+    #else:
+        #print(f"Inline comment already posted for {file_path}, skipping inline post.")
 
 # --- General PR comment posting ---
 def post_general_comments():
