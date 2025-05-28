@@ -99,16 +99,16 @@ def post_inline_comment(file_path, line, message, severity="Unknown"):
     path_in_diff = DIFF_LINES.get(file_path, {})
 
     if not (line_num and line_num in path_in_diff):
+        print(f"Skipping comment for {file_path}:{line} - line not in diff")
         return
 
-    # ✅ Store message first before checking future count
+    # Add current message first
     GENERAL_COMMENTS[file_path][severity].append(f"Line {line}: {message}")
 
-    # Only add inline comment for first issue in file
-    if file_path not in POSTED_INLINE:
-        # Count total issues recorded for the file
-        total_issues = sum(len(v) for v in GENERAL_COMMENTS[file_path].values())
+    total_issues = sum(len(v) for v in GENERAL_COMMENTS[file_path].values())
+    print(f"Total issues for {file_path}: {total_issues}")
 
+    if file_path not in POSTED_INLINE:
         if total_issues > 1:
             message += (
                 "\n\n**Note**: For more comments, see the "
@@ -123,13 +123,15 @@ def post_inline_comment(file_path, line, message, severity="Unknown"):
             "position": 1
         }
 
-        print("Posting inline comment:\n" + json.dumps(payload, indent=2))
+        print(f"Posting inline comment:\n{json.dumps(payload, indent=2)}")
         response = requests.post(PR_REVIEW_COMMENTS_API, headers=HEADERS, json=payload)
         print(f"Inline response {response.status_code}")
         if response.status_code == 201:
             POSTED_INLINE.add(file_path)
         else:
             print(response.text)
+    else:
+        print(f"Inline comment already posted for {file_path}, skipping inline post.")
 
 # --- General PR comment posting ---
 def post_general_comments():
