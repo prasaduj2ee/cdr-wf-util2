@@ -24,6 +24,7 @@ PR_GENERAL_COMMENTS_API = f"https://api.github.com/repos/{GITHUB_REPOSITORY}/iss
 DIFF_LINES = {}
 GENERAL_COMMENTS = defaultdict(lambda: defaultdict(list))  # file_path -> severity -> messages
 POSTED_INLINE = set()
+VIOLATIONS_FOUND = False
 
 # --- Fetch PR diff and map line -> position
 def get_pr_diff_lines():
@@ -166,6 +167,9 @@ def parse_checkstyle(path):
         file_path = file_path[file_path.find("src/"):] if "src/" in file_path else file_path
         errors = f.findall("error")
         total_errors = len(errors)
+        global VIOLATIONS_FOUND
+        if errors:          
+            VIOLATIONS_FOUND = True
         for err in errors:
             line = err.get("line")
             severity_raw = err.get("severity", "info")
@@ -195,6 +199,9 @@ def parse_pmd(path):
         file_path = file_path[file_path.find("src/"):] if "src/" in file_path else file_path
         violations = f.findall("ns:violation", ns) if ns else f.findall("violation")
         total_violations = len(violations)
+        global VIOLATIONS_FOUND
+        if violations:          
+            VIOLATIONS_FOUND = True
         for v in violations:
             line = v.get("beginline")
             priority = v.get("priority", "3")
@@ -209,3 +216,8 @@ def parse_pmd(path):
 parse_checkstyle("build/reports/checkstyle/main.xml")
 parse_pmd("build/reports/pmd/main.xml")
 post_general_comments()
+if VIOLATIONS_FOUND:
+    print("❌ Static analysis violations detected. Failing the CI job.")
+    exit(1)  # Non-zero exit code prevents merge
+else:
+    print("✅ No static analysis violations found.")
