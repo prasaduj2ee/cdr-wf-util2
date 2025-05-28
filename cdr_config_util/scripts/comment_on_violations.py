@@ -63,7 +63,7 @@ def get_pr_diff_lines():
     return result
 
 DIFF_LINES = get_pr_diff_lines()
-print("DIFF_LINES-->", DIFF_LINES)
+#print("DIFF_LINES-->", DIFF_LINES)
 
 # --- Severity Mappers ---
 def get_pmd_severity(priority):
